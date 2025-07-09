@@ -166,11 +166,16 @@ function App() {
     // Simulate API call
     const loadData = async () => {
       setLoading(true);
-      // Simulate network delay
-      await new Promise(resolve => setTimeout(resolve, 1000));
-      setJobs(MOCK_JOBS);
-      setOrganizations(MOCK_ORGANIZATIONS);
-      setLoading(false);
+      try {
+        // Simulate network delay
+        await new Promise(resolve => setTimeout(resolve, 1500));
+        setJobs(MOCK_JOBS);
+        setOrganizations(MOCK_ORGANIZATIONS);
+      } catch (error) {
+        console.error('Error loading data:', error);
+      } finally {
+        setLoading(false);
+      }
     };
 
     loadData();
