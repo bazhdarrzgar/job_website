@@ -1,0 +1,48 @@
+[
+  {
+    "id": "1",
+    "title": "Senior Technical Infrastructure Contractor",
+    "organization": "FAR AI",
+    "location": "San Francisco, CA / Remote",
+    "type": "Contract",
+    "salary": "$120,000 - $150,000",
+    "description": "Help build trustworthy AI systems that are beneficial to society. Work on technical infrastructure for AI safety research.",
+    "requirements": [
+      "5+ years experience in software engineering",
+      "Experience with Python, React, or similar",
+      "Interest in AI safety"
+    ],
+    "posted": "2 days ago",
+    "highlighted": true,
+    "tags": [
+      "AI Safety",
+      "Technical",
+      "Remote"
+    ],
+    "organizationLogo": "\ud83e\udd16",
+    "organizationDescription": "FAR AI aims to ensure AI systems are trustworthy and beneficial to society."
+  },
+  {
+    "id": "2",
+    "title": "Director of Public Engagement",
+    "organization": "Center for AI Safety",
+    "location": "San Francisco, CA",
+    "type": "Full-time",
+    "salary": "$130,000 - $180,000",
+    "description": "Lead public engagement initiatives to reduce high-consequence risks from AI through technical research and field-building.",
+    "requirements": [
+      "7+ years in public engagement or communications",
+      "Experience with AI policy or safety",
+      "Strong leadership skills"
+    ],
+    "posted": "1 week ago",
+    "highlighted": false,
+    "tags": [
+      "Public Engagement",
+      "Leadership",
+      "AI Policy"
+    ],
+    "organizationLogo": "\ud83d\udee1\ufe0f",
+    "organizationDescription": "Center for AI Safety focuses on reducing high-consequence risks from AI through technical research and field-building."
+  }
+]
