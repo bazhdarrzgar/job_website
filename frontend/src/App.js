@@ -152,9 +152,9 @@ const MOCK_ORGANIZATIONS = [
 ];
 
 function App() {
-  const [jobs, setJobs] = useState([]);
-  const [organizations, setOrganizations] = useState([]);
-  const [loading, setLoading] = useState(true);
+  const [jobs, setJobs] = useState(MOCK_JOBS);
+  const [organizations, setOrganizations] = useState(MOCK_ORGANIZATIONS);
+  const [loading, setLoading] = useState(false);
   const [filters, setFilters] = useState({
     salary: '',
     other: '',
@@ -162,24 +162,22 @@ function App() {
     highlighted: false
   });
 
-  useEffect(() => {
-    // Simulate API call
-    const loadData = async () => {
-      setLoading(true);
-      try {
-        // Simulate network delay
-        await new Promise(resolve => setTimeout(resolve, 1500));
-        setJobs(MOCK_JOBS);
-        setOrganizations(MOCK_ORGANIZATIONS);
-      } catch (error) {
-        console.error('Error loading data:', error);
-      } finally {
-        setLoading(false);
-      }
-    };
-
-    loadData();
-  }, []);
+  // Remove the useEffect that was causing issues
+  // useEffect(() => {
+  //   const loadData = async () => {
+  //     setLoading(true);
+  //     try {
+  //       await new Promise(resolve => setTimeout(resolve, 1500));
+  //       setJobs(MOCK_JOBS);
+  //       setOrganizations(MOCK_ORGANIZATIONS);
+  //     } catch (error) {
+  //       console.error('Error loading data:', error);
+  //     } finally {
+  //       setLoading(false);
+  //     }
+  //   };
+  //   loadData();
+  // }, []);
 
   const filteredJobs = jobs.filter(job => {
     if (filters.search && !job.title.toLowerCase().includes(filters.search.toLowerCase()) && 
