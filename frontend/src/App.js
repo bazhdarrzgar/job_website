@@ -190,10 +190,13 @@ function App() {
       return false;
     }
     if (filters.salary) {
-      const salaryNum = parseInt(job.salary.replace(/[^0-9]/g, ''));
-      if (filters.salary === 'under-50k' && salaryNum >= 50000) return false;
-      if (filters.salary === '50k-100k' && (salaryNum < 50000 || salaryNum > 100000)) return false;
-      if (filters.salary === 'over-100k' && salaryNum <= 100000) return false;
+      const salaryMatch = job.salary.match(/\$(\d+),?(\d+)?/);
+      if (salaryMatch) {
+        const salaryNum = parseInt(salaryMatch[1] + (salaryMatch[2] || '000'));
+        if (filters.salary === 'under-50k' && salaryNum >= 50000) return false;
+        if (filters.salary === '50k-100k' && (salaryNum < 50000 || salaryNum > 100000)) return false;
+        if (filters.salary === 'over-100k' && salaryNum <= 100000) return false;
+      }
     }
     return true;
   });
