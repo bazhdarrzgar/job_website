@@ -1,8 +1,9 @@
 import React, { useState } from 'react';
 import { useParams, Link, useNavigate } from 'react-router-dom';
+import axios from 'axios';
 
 // Header Component
-export const Header = () => {
+export const Header = ({ isAdmin, onLogout }) => {
   return (
     <header className="bg-white shadow-sm border-b">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
@@ -22,6 +23,14 @@ export const Header = () => {
             <span className="text-gray-500 hover:text-gray-700 cursor-not-allowed">Get 1-1 advice</span>
           </nav>
           <div className="hidden md:flex items-center space-x-4">
+            {isAdmin ? (
+              <>
+                <Link to="/admin/dashboard" className="text-teal-500 hover:text-teal-700 font-medium">Admin</Link>
+                <button onClick={onLogout} className="text-gray-500 hover:text-gray-700">Logout</button>
+              </>
+            ) : (
+              <Link to="/admin/login" className="text-teal-500 hover:text-teal-700 font-medium">Admin</Link>
+            )}
             <span className="text-gray-500 hover:text-gray-700 cursor-not-allowed">New releases</span>
             <span className="text-gray-500 hover:text-gray-700 cursor-not-allowed">All articles</span>
             <span className="text-gray-500 hover:text-gray-700 cursor-not-allowed">Give feedback</span>
@@ -30,6 +39,761 @@ export const Header = () => {
         </div>
       </div>
     </header>
+  );
+};
+
+// Admin Route Protection Component
+export const AdminRoute = ({ children, isAdmin }) => {
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+        <div className="text-center">
+          <h2 className="text-2xl font-bold text-gray-900 mb-4">Access Denied</h2>
+          <p className="text-gray-600 mb-4">You need to be logged in as admin to access this page.</p>
+          <Link to="/admin/login" className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors">
+            Login as Admin
+          </Link>
+        </div>
+      </div>
+    );
+  }
+  return children;
+};
+
+// Admin Login Component
+export const AdminLogin = ({ onLogin }) => {
+  const [credentials, setCredentials] = useState({ username: '', password: '' });
+  const [loading, setLoading] = useState(false);
+  const [error, setError] = useState('');
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+    setError('');
+
+    try {
+      const response = await axios.post('/api/admin/login', credentials);
+      onLogin(response.data.token);
+    } catch (error) {
+      setError('Invalid credentials. Use admin/admin123');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50 flex items-center justify-center">
+      <div className="max-w-md w-full space-y-8">
+        <div>
+          <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
+            Admin Login
+          </h2>
+          <p className="mt-2 text-center text-sm text-gray-600">
+            Manage jobs and organizations
+          </p>
+        </div>
+        <form className="mt-8 space-y-6" onSubmit={handleSubmit}>
+          <div>
+            <label htmlFor="username" className="block text-sm font-medium text-gray-700">
+              Username
+            </label>
+            <input
+              id="username"
+              name="username"
+              type="text"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              value={credentials.username}
+              onChange={(e) => setCredentials({...credentials, username: e.target.value})}
+            />
+          </div>
+          <div>
+            <label htmlFor="password" className="block text-sm font-medium text-gray-700">
+              Password
+            </label>
+            <input
+              id="password"
+              name="password"
+              type="password"
+              required
+              className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              value={credentials.password}
+              onChange={(e) => setCredentials({...credentials, password: e.target.value})}
+            />
+          </div>
+          
+          {error && (
+            <div className="text-red-600 text-sm text-center">{error}</div>
+          )}
+          
+          <button
+            type="submit"
+            disabled={loading}
+            className="group relative w-full flex justify-center py-2 px-4 border border-transparent text-sm font-medium rounded-md text-white bg-teal-600 hover:bg-teal-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-teal-500 disabled:opacity-50"
+          >
+            {loading ? 'Logging in...' : 'Sign in'}
+          </button>
+          
+          <div className="text-sm text-center text-gray-600">
+            Default credentials: admin / admin123
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Admin Dashboard Component
+export const AdminDashboard = ({ jobs, organizations, onDataUpdate }) => {
+  const [activeTab, setActiveTab] = useState('jobs');
+  const [showAddJob, setShowAddJob] = useState(false);
+  const [showAddOrg, setShowAddOrg] = useState(false);
+  const [editingJob, setEditingJob] = useState(null);
+  const [editingOrg, setEditingOrg] = useState(null);
+
+  const handleDeleteJob = async (jobId) => {
+    if (window.confirm('Are you sure you want to delete this job?')) {
+      try {
+        await axios.delete(`/api/jobs/${jobId}`);
+        onDataUpdate();
+      } catch (error) {
+        alert('Error deleting job');
+      }
+    }
+  };
+
+  const handleDeleteOrg = async (orgId) => {
+    if (window.confirm('Are you sure you want to delete this organization?')) {
+      try {
+        await axios.delete(`/api/organizations/${orgId}`);
+        onDataUpdate();
+      } catch (error) {
+        alert('Error deleting organization');
+      }
+    }
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-50">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        <div className="mb-8">
+          <h1 className="text-3xl font-bold text-gray-900">Admin Dashboard</h1>
+          <p className="text-gray-600">Manage jobs and organizations</p>
+        </div>
+
+        {/* Tab Navigation */}
+        <div className="flex space-x-8 mb-8">
+          <button
+            onClick={() => setActiveTab('jobs')}
+            className={`pb-2 border-b-2 font-medium ${
+              activeTab === 'jobs' 
+                ? 'border-teal-500 text-teal-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Jobs ({jobs.length})
+          </button>
+          <button
+            onClick={() => setActiveTab('organizations')}
+            className={`pb-2 border-b-2 font-medium ${
+              activeTab === 'organizations' 
+                ? 'border-teal-500 text-teal-600' 
+                : 'border-transparent text-gray-500 hover:text-gray-700'
+            }`}
+          >
+            Organizations ({organizations.length})
+          </button>
+        </div>
+
+        {/* Jobs Tab */}
+        {activeTab === 'jobs' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Manage Jobs</h2>
+              <button
+                onClick={() => setShowAddJob(true)}
+                className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
+              >
+                Add New Job
+              </button>
+            </div>
+            
+            <div className="bg-white shadow overflow-hidden rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Job Title
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Organization
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Salary
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {jobs.map((job) => (
+                    <tr key={job.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="text-sm font-medium text-gray-900">{job.title}</div>
+                        {job.highlighted && (
+                          <span className="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-yellow-100 text-yellow-800">
+                            ⭐ Highlighted
+                          </span>
+                        )}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {job.organization}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {job.location}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {job.salary}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => setEditingJob(job)}
+                          className="text-teal-600 hover:text-teal-900 mr-4"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteJob(job.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Organizations Tab */}
+        {activeTab === 'organizations' && (
+          <div>
+            <div className="flex justify-between items-center mb-6">
+              <h2 className="text-xl font-semibold">Manage Organizations</h2>
+              <button
+                onClick={() => setShowAddOrg(true)}
+                className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors"
+              >
+                Add New Organization
+              </button>
+            </div>
+            
+            <div className="bg-white shadow overflow-hidden rounded-lg">
+              <table className="min-w-full divide-y divide-gray-200">
+                <thead className="bg-gray-50">
+                  <tr>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Organization
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Location
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Size
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Website
+                    </th>
+                    <th className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider">
+                      Actions
+                    </th>
+                  </tr>
+                </thead>
+                <tbody className="bg-white divide-y divide-gray-200">
+                  {organizations.map((org) => (
+                    <tr key={org.id}>
+                      <td className="px-6 py-4 whitespace-nowrap">
+                        <div className="flex items-center">
+                          <div className="text-2xl mr-3">{org.logo}</div>
+                          <div className="text-sm font-medium text-gray-900">{org.name}</div>
+                        </div>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {org.location}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        {org.size}
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
+                        <a href={org.website} className="text-teal-600 hover:text-teal-900">
+                          {org.website}
+                        </a>
+                      </td>
+                      <td className="px-6 py-4 whitespace-nowrap text-sm font-medium">
+                        <button
+                          onClick={() => setEditingOrg(org)}
+                          className="text-teal-600 hover:text-teal-900 mr-4"
+                        >
+                          Edit
+                        </button>
+                        <button
+                          onClick={() => handleDeleteOrg(org.id)}
+                          className="text-red-600 hover:text-red-900"
+                        >
+                          Delete
+                        </button>
+                      </td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+            </div>
+          </div>
+        )}
+
+        {/* Add/Edit Job Modal */}
+        {(showAddJob || editingJob) && (
+          <JobModal
+            job={editingJob}
+            onClose={() => {
+              setShowAddJob(false);
+              setEditingJob(null);
+            }}
+            onSave={onDataUpdate}
+          />
+        )}
+
+        {/* Add/Edit Organization Modal */}
+        {(showAddOrg || editingOrg) && (
+          <OrganizationModal
+            organization={editingOrg}
+            onClose={() => {
+              setShowAddOrg(false);
+              setEditingOrg(null);
+            }}
+            onSave={onDataUpdate}
+          />
+        )}
+      </div>
+    </div>
+  );
+};
+
+// Job Modal Component
+export const JobModal = ({ job, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    title: job?.title || '',
+    organization: job?.organization || '',
+    location: job?.location || '',
+    type: job?.type || 'Full-time',
+    salary: job?.salary || '',
+    description: job?.description || '',
+    requirements: job?.requirements || [],
+    highlighted: job?.highlighted || false,
+    tags: job?.tags || [],
+    organizationLogo: job?.organizationLogo || '🏢',
+    organizationDescription: job?.organizationDescription || ''
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (job) {
+        await axios.put(`/api/jobs/${job.id}`, formData);
+      } else {
+        await axios.post('/api/jobs', formData);
+      }
+      onSave();
+      onClose();
+    } catch (error) {
+      alert('Error saving job');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleRequirementChange = (index, value) => {
+    const newRequirements = [...formData.requirements];
+    newRequirements[index] = value;
+    setFormData({ ...formData, requirements: newRequirements });
+  };
+
+  const addRequirement = () => {
+    setFormData({ ...formData, requirements: [...formData.requirements, ''] });
+  };
+
+  const removeRequirement = (index) => {
+    const newRequirements = formData.requirements.filter((_, i) => i !== index);
+    setFormData({ ...formData, requirements: newRequirements });
+  };
+
+  const handleTagsChange = (tagsString) => {
+    const tags = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
+    setFormData({ ...formData, tags });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+        <h3 className="text-lg font-medium mb-4">
+          {job ? 'Edit Job' : 'Add New Job'}
+        </h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Title *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.title}
+                onChange={(e) => setFormData({ ...formData, title: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Organization *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.organization}
+                onChange={(e) => setFormData({ ...formData, organization: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Job Type *
+              </label>
+              <select
+                value={formData.type}
+                onChange={(e) => setFormData({ ...formData, type: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              >
+                <option value="Full-time">Full-time</option>
+                <option value="Part-time">Part-time</option>
+                <option value="Contract">Contract</option>
+                <option value="Internship">Internship</option>
+                <option value="Fellowship">Fellowship</option>
+              </select>
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Salary *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g., $80,000 - $120,000"
+                value={formData.salary}
+                onChange={(e) => setFormData({ ...formData, salary: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Organization Logo
+              </label>
+              <input
+                type="text"
+                placeholder="🏢"
+                value={formData.organizationLogo}
+                onChange={(e) => setFormData({ ...formData, organizationLogo: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description *
+            </label>
+            <textarea
+              required
+              rows="4"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Organization Description
+            </label>
+            <textarea
+              rows="3"
+              value={formData.organizationDescription}
+              onChange={(e) => setFormData({ ...formData, organizationDescription: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Requirements
+            </label>
+            {formData.requirements.map((req, index) => (
+              <div key={index} className="flex items-center space-x-2 mb-2">
+                <input
+                  type="text"
+                  value={req}
+                  onChange={(e) => handleRequirementChange(index, e.target.value)}
+                  className="flex-1 px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+                />
+                <button
+                  type="button"
+                  onClick={() => removeRequirement(index)}
+                  className="text-red-600 hover:text-red-800"
+                >
+                  Remove
+                </button>
+              </div>
+            ))}
+            <button
+              type="button"
+              onClick={addRequirement}
+              className="text-teal-600 hover:text-teal-800"
+            >
+              + Add Requirement
+            </button>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={formData.tags.join(', ')}
+              onChange={(e) => handleTagsChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          
+          <div className="flex items-center">
+            <input
+              type="checkbox"
+              id="highlighted"
+              checked={formData.highlighted}
+              onChange={(e) => setFormData({ ...formData, highlighted: e.target.checked })}
+              className="h-4 w-4 text-teal-600 focus:ring-teal-500 border-gray-300 rounded"
+            />
+            <label htmlFor="highlighted" className="ml-2 block text-sm text-gray-900">
+              Highlight this job
+            </label>
+          </div>
+          
+          <div className="flex gap-2 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : 'Save Job'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
+  );
+};
+
+// Organization Modal Component
+export const OrganizationModal = ({ organization, onClose, onSave }) => {
+  const [formData, setFormData] = useState({
+    name: organization?.name || '',
+    logo: organization?.logo || '🏢',
+    description: organization?.description || '',
+    location: organization?.location || '',
+    size: organization?.size || '',
+    website: organization?.website || '',
+    tags: organization?.tags || []
+  });
+  const [loading, setLoading] = useState(false);
+
+  const handleSubmit = async (e) => {
+    e.preventDefault();
+    setLoading(true);
+
+    try {
+      if (organization) {
+        await axios.put(`/api/organizations/${organization.id}`, formData);
+      } else {
+        await axios.post('/api/organizations', formData);
+      }
+      onSave();
+      onClose();
+    } catch (error) {
+      alert('Error saving organization');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const handleTagsChange = (tagsString) => {
+    const tags = tagsString.split(',').map(tag => tag.trim()).filter(tag => tag);
+    setFormData({ ...formData, tags });
+  };
+
+  return (
+    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+      <div className="bg-white rounded-lg p-6 max-w-2xl w-full mx-4 max-h-screen overflow-y-auto">
+        <h3 className="text-lg font-medium mb-4">
+          {organization ? 'Edit Organization' : 'Add New Organization'}
+        </h3>
+        
+        <form onSubmit={handleSubmit} className="space-y-4">
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Organization Name *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.name}
+                onChange={(e) => setFormData({ ...formData, name: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Logo
+              </label>
+              <input
+                type="text"
+                placeholder="🏢"
+                value={formData.logo}
+                onChange={(e) => setFormData({ ...formData, logo: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Location *
+              </label>
+              <input
+                type="text"
+                required
+                value={formData.location}
+                onChange={(e) => setFormData({ ...formData, location: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div>
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Company Size *
+              </label>
+              <input
+                type="text"
+                required
+                placeholder="e.g., 10-50 employees"
+                value={formData.size}
+                onChange={(e) => setFormData({ ...formData, size: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+            
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">
+                Website *
+              </label>
+              <input
+                type="url"
+                required
+                placeholder="https://example.com"
+                value={formData.website}
+                onChange={(e) => setFormData({ ...formData, website: e.target.value })}
+                className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+              />
+            </div>
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Description *
+            </label>
+            <textarea
+              required
+              rows="4"
+              value={formData.description}
+              onChange={(e) => setFormData({ ...formData, description: e.target.value })}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">
+              Tags (comma-separated)
+            </label>
+            <input
+              type="text"
+              value={formData.tags.join(', ')}
+              onChange={(e) => handleTagsChange(e.target.value)}
+              className="w-full px-3 py-2 border border-gray-300 rounded-md focus:outline-none focus:ring-teal-500 focus:border-teal-500"
+            />
+          </div>
+          
+          <div className="flex gap-2 pt-4">
+            <button
+              type="submit"
+              disabled={loading}
+              className="bg-teal-500 text-white px-4 py-2 rounded-lg hover:bg-teal-600 transition-colors disabled:opacity-50"
+            >
+              {loading ? 'Saving...' : 'Save Organization'}
+            </button>
+            <button
+              type="button"
+              onClick={onClose}
+              className="bg-gray-300 text-gray-700 px-4 py-2 rounded-lg hover:bg-gray-400 transition-colors"
+            >
+              Cancel
+            </button>
+          </div>
+        </form>
+      </div>
+    </div>
   );
 };
 
